@@ -1015,7 +1015,7 @@ function buildCard(index, item, apiClient, options) {
 
         const url = appRouter.getRouteUrl(item);
         // Don't use the IMG tag with safari because it puts a white border around it
-        cardImageContainerOpen = imgUrl ? ('<a href="' + url + '" data-action="' + action + '" class="' + cardImageContainerClasses + ' ' + cardContentClass + ' itemAction lazy" data-src="' + imgUrl + '" ' + blurhashAttrib + cardImageContainerAriaLabelAttribute + '>') : ('<a href="' + url + '" data-action="' + action + '" class="' + cardImageContainerClasses + ' ' + cardContentClass + ' itemAction"' + cardImageContainerAriaLabelAttribute + '>');
+        cardImageContainerOpen = imgUrl ? ('<a href="' + url + '" data-action="' + action + '" class="' + cardImageContainerClasses + ' ' + cardContentClass + ' itemAction lazy" data-src="' + imgUrl + '" ' + blurhashAttrib + cardImageContainerAriaLabelAttribute + ' aria-hidden="true" tabindex="-1">') : ('<a href="' + url + '" data-action="' + action + '" class="' + cardImageContainerClasses + ' ' + cardContentClass + ' itemAction"  aria-hidden="true" tabindex="-1">');
 
         cardImageContainerClose = '</a>';
     }
@@ -1146,12 +1146,12 @@ function getHoverMenuHtml(item, action) {
     const url = appRouter.getRouteUrl(item, {
         serverId: item.ServerId || ServerConnections.currentApiClient().serverId()
     });
-    html += '<a href="' + url + '" class="cardImageContainer"></a>';
+    html += '<a href="' + url + '" class="cardImageContainer" aria-hidden="true" tabindex="-1"></a>';
 
     const btnCssClass = 'cardOverlayButton cardOverlayButton-hover itemAction paper-icon-button-light';
 
     if (playbackManager.canPlay(item)) {
-        html += '<button is="paper-icon-button-light" class="' + btnCssClass + ' cardOverlayFab-primary" data-action="resume"><span class="material-icons cardOverlayButtonIcon cardOverlayButtonIcon-hover play_arrow" aria-hidden="true"></span></button>';
+        html += '<button is="paper-icon-button-light" class="' + btnCssClass + ' cardOverlayFab-primary" data-action="resume" aria-label="' + globalize.translate('Play') + '"><span class="material-icons cardOverlayButtonIcon cardOverlayButtonIcon-hover play_arrow" aria-hidden="true"></span></button>';
     }
 
     html += '<div class="cardOverlayButton-br flex">';
