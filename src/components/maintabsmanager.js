@@ -143,6 +143,7 @@ export function setTabs(view, selectedIndex, getTabsFn, getTabContainersFn, onBe
                     const previousPanel = tabContainers[e.detail.previousIndex];
                     if (previousPanel) {
                         previousPanel.classList.remove('is-active');
+                        previousPanel.removeAttribute('role');
                     }
                 }
 
@@ -150,6 +151,7 @@ export function setTabs(view, selectedIndex, getTabsFn, getTabContainersFn, onBe
 
                 if (newPanel) {
                     newPanel.classList.add('is-active');
+                    newPanel.setAttribute('role', 'main');
                 }
             });
         }

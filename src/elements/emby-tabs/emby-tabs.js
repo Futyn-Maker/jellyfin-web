@@ -13,6 +13,8 @@ const activeButtonClass = buttonClass + '-active';
 
 function setActiveTabButton(newButton) {
     newButton.classList.add(activeButtonClass);
+    newButton.setAttribute('aria-selected', 'true');
+    newButton.setAttribute('tabindex', '0');
 }
 
 function getTabPanel() {
@@ -47,6 +49,24 @@ function triggerBeforeTabChange(tabs, index, previousIndex) {
             previousIndex: previousIndex
         }
     }));
+
+    const tabButtons = tabs.querySelectorAll('[role="tab"]');
+    const selectedTab = tabButtons[index];
+
+    if (selectedTab) {
+        const panelId = selectedTab.getAttribute('aria-controls');
+        if (panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                if (!panel.getAttribute('role')) {
+                    panel.setAttribute('role', 'tabpanel');
+                    panel.setAttribute('tabindex', '0');
+                    panel.setAttribute('aria-labelledby', selectedTab.id);
+                }
+            }
+        }
+    }
+
     if (previousIndex != null && previousIndex !== index) {
         removeActivePanelClass();
     }
@@ -72,6 +92,8 @@ function onClick(e) {
     if (tabButton && tabButton !== current) {
         if (current) {
             current.classList.remove(activeButtonClass);
+            current.setAttribute('aria-selected', 'false');
+            current.setAttribute('tabindex', '-1');
         }
 
         const previousIndex = current ? parseInt(current.getAttribute('data-index'), 10) : null;
@@ -100,11 +122,60 @@ function onClick(e) {
     }
 }
 
+function onKeyDown(e) {
+    const tabs = this;
+    if (e.target.getAttribute('role') !== 'tab') return;
+
+    const currentTab = tabs.querySelector('[aria-selected="true"]');
+    const tabButtons = Array.from(tabs.querySelectorAll('[role="tab"]'));
+    const currentIndex = tabButtons.indexOf(currentTab);
+    let targetTab = null;
+
+    switch (e.key) {
+        case 'ArrowRight':
+            targetTab = tabButtons[(currentIndex + 1) % tabButtons.length];
+            e.preventDefault();
+            break;
+        case 'ArrowLeft':
+            targetTab = tabButtons[(currentIndex - 1 + tabButtons.length) % tabButtons.length];
+            e.preventDefault();
+            break;
+        case 'Home':
+            targetTab = tabButtons[0];
+            e.preventDefault();
+            break;
+        case 'End':
+            targetTab = tabButtons[tabButtons.length - 1];
+            e.preventDefault();
+            break;
+        case 'Enter':
+        case ' ': // Space key
+            targetTab = e.target;
+            e.preventDefault();
+            break;
+    }
+
+    if (targetTab) {
+        targetTab.focus();
+
+        onClick.call(tabs, { target: targetTab });
+    }
+}
+
 function onFocusIn(e) {
     const tabs = this;
     const tabButton = dom.parentWithClass(e.target, buttonClass);
     if (tabButton && tabs.scroller) {
         tabs.scroller.toCenter(tabButton, false);
+    }
+
+    if (e.target === tabs && !tabButton) {
+        const activeTab = tabs.querySelector('.' + activeButtonClass);
+        if (activeTab) {
+            setTimeout(() => {
+                activeTab.focus();
+            }, 0);
+        }
     }
 }
 
@@ -158,10 +229,13 @@ EmbyTabs.createdCallback = function () {
     }
     this.classList.add('emby-tabs');
     this.classList.add('focusable');
+    this.setAttribute('role', 'tablist');
+    this.setAttribute('aria-orientation', 'horizontal');
 
     dom.addEventListener(this, 'click', onClick, {
         passive: true
     });
+    dom.addEventListener(this, 'keydown', onKeyDown);
 
     if (layoutManager.tv) {
         dom.addEventListener(this, 'focusin', onFocusIn, { passive: true });
@@ -195,10 +269,22 @@ EmbyTabs.attachedCallback = function () {
     const current = this.querySelector('.' + activeButtonClass);
     const currentIndex = current ? parseInt(current.getAttribute('data-index'), 10) : parseInt(this.getAttribute('data-index') || '0', 10);
 
+    const tabButtons = this.querySelectorAll('.' + buttonClass);
+
+    tabButtons.forEach((btn, index) => {
+        btn.setAttribute('role', 'tab');
+        btn.setAttribute('aria-selected', index === currentIndex ? 'true' : 'false');
+        btn.setAttribute('tabindex', index === currentIndex ? '0' : '-1');
+
+        const panelId = btn.getAttribute('aria-controls') || 
+            btn.getAttribute('data-controls') || 
+            'tabpanel-' + btn.getAttribute('data-index');
+
+        btn.setAttribute('aria-controls', panelId);
+    });
+
     if (currentIndex !== -1) {
         this.selectedTabIndex = currentIndex;
-
-        const tabButtons = this.querySelectorAll('.' + buttonClass);
 
         const newTabButton = tabButtons[currentIndex];
 
@@ -222,6 +308,7 @@ EmbyTabs.detachedCallback = function () {
     dom.removeEventListener(this, 'click', onClick, {
         passive: true
     });
+    dom.removeEventListener(this, 'keydown', onKeyDown);
 
     if (layoutManager.tv) {
         dom.removeEventListener(this, 'focusin', onFocusIn, { passive: true });
@@ -259,6 +346,7 @@ EmbyTabs.selectedIndex = function (selected, triggerEvent) {
 
         if (current !== selected && currentTabButton) {
             currentTabButton.classList.remove(activeButtonClass);
+            currentTabButton.setAttribute('aria-selected', 'false');
         }
     } else {
         onClick.call(tabs, {
